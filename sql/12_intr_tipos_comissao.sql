@@ -9,6 +9,7 @@ create table if not exists gkli_intr.comissao_tipos (
   nome text not null,
   categoria text,
   percentual numeric(8,4) default 0 not null,
+  comissao_de_time boolean default false not null,
   ativo boolean default true not null,
   observacao text,
   criado_em timestamp with time zone default now() not null,
@@ -25,7 +26,7 @@ exception when duplicate_object then null;
 end $$;
 
 drop trigger if exists trg_comissao_tipos_updated_at on gkli_intr.comissao_tipos;
-create trigger trg_comissao_tipos_updated_at before update on gkli_intr.comissao_tipos for each row execute function core.set_updated_at();
+create trigger trg_comissao_tipos_updated_at before update on gkli_intr.comissao_tipos for each row execute function core.set_atualizado_em();
 
 create index if not exists comissao_tipos_categoria_idx on gkli_intr.comissao_tipos using btree (categoria);
 create index if not exists comissao_tipos_ativo_idx on gkli_intr.comissao_tipos using btree (ativo);
@@ -38,6 +39,7 @@ select
   nome,
   categoria,
   percentual,
+  comissao_de_time,
   ativo,
   observacao,
   criado_em,

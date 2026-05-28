@@ -80,7 +80,7 @@ export function ImportarReceitasForm() {
           {pending ? 'Validando...' : 'Pre-visualizar'}
         </button>
         <button className="button" disabled={pending || !preview || preview.validas === 0} onClick={onConfirm} type="button">
-          {pending ? 'Importando...' : 'Confirmar importacao'}
+          {pending ? 'Importando...' : 'Confirmar importação'}
         </button>
       </div>
 

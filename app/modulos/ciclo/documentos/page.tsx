@@ -15,12 +15,8 @@ export default async function CicloDocumentosPage() {
       title="Documentos"
       description="Checklist documental por cliente, com status, obrigatoriedade e vencimentos."
       usuario={context.usuario}
+      actions={canWrite ? <Link className="button" href="/modulos/ciclo/documentos/novo">Novo documento</Link> : null}
     >
-      {canWrite ? (
-        <div className="form-actions">
-          <Link className="button" href="/modulos/ciclo/documentos/novo">Novo documento</Link>
-        </div>
-      ) : null}
       <CicloDocumentSignal documentos={data.documentos} />
       <CicloDocumentoList canWrite={canWrite} documentos={data.documentos} />
     </CicloShell>

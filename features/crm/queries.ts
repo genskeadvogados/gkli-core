@@ -379,7 +379,7 @@ export async function listCrmImportacaoRows(context: CrmContext): Promise<CrmLis
     const status = text(row.status, 'processada')
     return {
       id: text(row.id),
-      title: text(row.arquivo ?? row.nome_arquivo, 'Importacao de dados'),
+      title: text(row.arquivo ?? row.nome_arquivo, 'Importação de dados'),
       subtitle: text(row.descricao ?? row.observacao, 'Sem descricao cadastrada'),
       status,
       value: `${numberValue(row.total_linhas ?? row.linhas_processadas ?? row.linhas).toLocaleString('pt-BR')} linhas`,

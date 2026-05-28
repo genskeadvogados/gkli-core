@@ -15,12 +15,8 @@ export default async function CrmPropostasPage() {
       title="Propostas"
       description="Controle de propostas comerciais, valores, escopo e status de aprovacao."
       usuario={context.usuario}
+      actions={canWrite ? <Link className="button" href="/modulos/crm/propostas/nova">Nova proposta</Link> : null}
     >
-      {canWrite ? (
-        <div className="form-actions">
-          <Link className="button" href="/modulos/crm/propostas/nova">Nova proposta</Link>
-        </div>
-      ) : null}
       <CrmListKpis rows={rows} secondaryLabel="Aprovadas" />
       <CrmGenericList
         title="Lista de propostas"

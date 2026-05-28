@@ -586,13 +586,13 @@ async function criarLoteImportacao(analysis: Awaited<ReturnType<typeof prepararI
     .select('id')
     .single()
 
-  if (error) throw new Error(`Lote de importacao: ${error.message}`)
+  if (error) throw new Error(`Lote de importação: ${error.message}`)
   return data.id as string
 }
 
 async function registrarItemImportacao(payload: Record<string, unknown>) {
   const { error } = await admin().schema('ciclo').from('importacao_lote_itens').insert(payload)
-  if (error) throw new Error(`Item de importacao: ${error.message}`)
+  if (error) throw new Error(`Item de importação: ${error.message}`)
 }
 
 async function finalizarLoteImportacao(loteId: string, result: ImportacaoClientesResult, status: 'concluido' | 'parcial' | 'falhou', erro?: string) {
@@ -1302,7 +1302,7 @@ export async function importarClientesXlsx(formData: FormData): Promise<Importac
 
       await runOptionalRpc('gkli_gerar_checklist_documental_cliente', clienteId)
       await runOptionalRpc('gkli_recalcular_regularidade_cliente', clienteId)
-      await logTimeline(clienteId, carteiraId, analysis.context.usuario.id, 'Cliente importado', 'Cadastro criado ou atualizado por importacao XLSX.')
+      await logTimeline(clienteId, carteiraId, analysis.context.usuario.id, 'Cliente importado', 'Cadastro criado ou atualizado por importação XLSX.')
       await registrarItemImportacao({
         lote_id: loteId,
         linha,

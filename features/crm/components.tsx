@@ -74,6 +74,7 @@ const navGroups: ModuleNavGroup[] = [
 
 export function CrmShell({
   active,
+  actions,
   children,
   description,
   eyebrow,
@@ -81,6 +82,7 @@ export function CrmShell({
   usuario,
 }: {
   active: CrmTab
+  actions?: ReactNode
   children: ReactNode
   description: string
   eyebrow: string
@@ -90,6 +92,7 @@ export function CrmShell({
   return (
     <ModuleShell
       activeHref={activeHref[active]}
+      actions={actions}
       brand="CRM"
       description={description}
       eyebrow={eyebrow}

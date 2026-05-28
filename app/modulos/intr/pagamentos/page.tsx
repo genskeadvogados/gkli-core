@@ -15,14 +15,14 @@ export default async function IntrPagamentosPage() {
       title="Pagamentos"
       description="Pagamentos internos por colaborador, competencia, tipo e status."
       usuario={context.usuario}
-    >
-      {canWrite || canManageAgenda ? (
-        <div className="form-actions">
+      actions={canWrite || canManageAgenda ? (
+        <>
           {canManageAgenda ? <Link className="button secondary" href="/modulos/intr/pagamentos/agenda">Agenda</Link> : null}
           {canWrite ? <Link className="button secondary" href="/modulos/intr/pagamentos/importacoes">Importar recibos</Link> : null}
           {canWrite ? <Link className="button" href="/modulos/intr/pagamentos/novo">Novo pagamento</Link> : null}
-        </div>
+        </>
       ) : null}
+    >
       <IntrListKpis rows={rows} totalLabel="Pagamentos" />
       <IntrGenericList
         title="Pagamentos recentes"

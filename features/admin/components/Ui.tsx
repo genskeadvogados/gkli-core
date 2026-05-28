@@ -28,8 +28,9 @@ export function PageHeader({
 }
 
 export function StatusBadge({ value }: { value?: string | null }) {
-  const status = value || '—'
-  const cls = status === 'ativo' ? 'ok' : status === 'pendente' ? 'warn' : 'off'
+  const rawStatus = value || '-'
+  const status = rawStatus.replace(/_/g, ' ')
+  const cls = rawStatus === 'ativo' ? 'ok' : rawStatus === 'pendente' ? 'warn' : 'off'
   return <span className={`badge ${cls}`}>{status}</span>
 }
 

@@ -1,16 +1,18 @@
 import Link from 'next/link'
 import { createUsuarioAction } from '@/features/admin/actions'
 import { Field, PageHeader, SelectField } from '@/features/admin/components/Ui'
-import { listApps, listCarteiras, listPerfis } from '@/features/admin/queries'
+import { listApps, listCarteiras, listPerfis, listUsuarioTipos } from '@/features/admin/queries'
 import { requireAdminPermission } from '@/lib/auth/permissions'
 
 export default async function NovoUsuarioPage() {
   await requireAdminPermission('admin.usuarios.write')
-  const [carteiras, apps, perfis] = await Promise.all([
+  const [carteiras, apps, perfis, tipos] = await Promise.all([
     listCarteiras(),
     listApps(),
     listPerfis(),
+    listUsuarioTipos(),
   ])
+  const tiposAtivos = tipos.filter((tipo: any) => tipo.ativo !== false)
 
   return (
     <>
@@ -24,14 +26,11 @@ export default async function NovoUsuarioPage() {
           <Field label="Avatar URL" name="avatar_url" />
         </div>
 
-        <SelectField label="Tipo" name="tipo" defaultValue="operador">
-          
-<option value="admin_global">Admin global</option>
-<option value="admin_carteira">Admin carteira</option>
-<option value="gestor">Gestor</option>
-<option value="operador">Operador</option>
-<option value="visualizador">Visualizador</option>
-
+        <SelectField label="Tipo de usuario" name="tipo_id" defaultValue={tiposAtivos.find((tipo: any) => tipo.codigo === 'colaborador')?.id ?? ''}>
+          <option value="">Selecionar tipo</option>
+          {tiposAtivos.map((tipo: any) => (
+            <option key={tipo.id} value={tipo.id}>{tipo.nome}</option>
+          ))}
         </SelectField>
 
         <SelectField label="Status" name="status" defaultValue="ativo">

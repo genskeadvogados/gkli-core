@@ -44,6 +44,29 @@ export async function listUsuarios() {
   return data ?? []
 }
 
+export async function listUsuarioTipos() {
+  const { data, error } = await admin()
+    .schema('core')
+    .from('usuario_tipos')
+    .select('id,codigo,nome,descricao,ativo,criado_em,atualizado_em')
+    .order('nome', { ascending: true })
+
+  if (error) throw new Error(error.message)
+  return data ?? []
+}
+
+export async function getUsuarioTipo(id: string) {
+  const { data, error } = await admin()
+    .schema('core')
+    .from('usuario_tipos')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (error) throw new Error(error.message)
+  return data
+}
+
 export async function getUsuario(id: string) {
   const { data, error } = await admin()
     .schema('security')

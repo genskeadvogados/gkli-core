@@ -4,8 +4,9 @@ import { BrandLogo } from '@/features/shared/brand-logo'
 import type { PlatformUsuario } from '@/lib/auth/platform'
 
 export type ModuleNavGroup = {
+  href?: string
   title: string
-  items: Array<{
+  items?: Array<{
     href: string
     label: string
     pending?: boolean
@@ -14,6 +15,7 @@ export type ModuleNavGroup = {
 
 export function ModuleShell({
   activeHref,
+  actions,
   brand,
   children,
   description,
@@ -24,6 +26,7 @@ export function ModuleShell({
   usuario,
 }: {
   activeHref: string
+  actions?: ReactNode
   brand: string
   children: ReactNode
   description: string
@@ -43,22 +46,32 @@ export function ModuleShell({
 
         <nav aria-label={`Navegacao ${product}`}>
           {navGroups.map((group) => (
-            <details className="module-sidebar-group" key={group.title} open>
-              <summary className="module-sidebar-group-label">{group.title}</summary>
-              {group.items.map((item) => {
-                const active = activeHref === item.href
-                return (
-                  <Link
-                    className={active ? 'active' : item.pending ? 'pending' : ''}
-                    href={item.pending ? '/modulos/painel' : item.href}
-                    key={`${group.title}-${item.href}-${item.label}`}
-                  >
-                    <span>{item.label}</span>
-                    {item.pending ? <small>pendente</small> : null}
-                  </Link>
-                )
-              })}
-            </details>
+            group.href ? (
+              <Link
+                className={activeHref === group.href ? 'active module-sidebar-direct' : 'module-sidebar-direct'}
+                href={group.href}
+                key={group.title}
+              >
+                <span>{group.title}</span>
+              </Link>
+            ) : (
+              <details className="module-sidebar-group" key={group.title} open>
+                <summary className="module-sidebar-group-label">{group.title}</summary>
+                {(group.items ?? []).map((item) => {
+                  const active = activeHref === item.href
+                  return (
+                    <Link
+                      className={active ? 'active' : item.pending ? 'pending' : ''}
+                      href={item.pending ? '/modulos/painel' : item.href}
+                      key={`${group.title}-${item.href}-${item.label}`}
+                    >
+                      <span>{item.label}</span>
+                      {item.pending ? <small>pendente</small> : null}
+                    </Link>
+                  )
+                })}
+              </details>
+            )
           ))}
         </nav>
 
@@ -80,12 +93,15 @@ export function ModuleShell({
 
         <section className="module-page-hero">
           <div className="module-page-hero-main">
-            <BrandLogo className="module-page-brand" label={`${title} - ${brand}`} />
-            <div>
-              <p className="platform-kicker">{eyebrow}</p>
-              <h1>{title}</h1>
-              <p>{description}</p>
+            <div className="module-page-hero-title">
+              <BrandLogo className="module-page-brand" label={`${title} - ${brand}`} />
+              <div>
+                <p className="platform-kicker">{eyebrow}</p>
+                <h1>{title}</h1>
+                <p>{description}</p>
+              </div>
             </div>
+            {actions ? <div className="module-page-actions">{actions}</div> : null}
           </div>
         </section>
 

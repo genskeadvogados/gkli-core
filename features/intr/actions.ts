@@ -59,6 +59,10 @@ function calculateCommission(base: number, commissionPercent: number) {
   return Math.round(base * (commissionPercent / 100) * 100) / 100
 }
 
+function roundMoney(value: number) {
+  return Math.round(value * 100) / 100
+}
+
 type IntrWritePermission =
   | 'intr.agenda_pagamentos.write'
   | 'intr.colaboradores.write'
@@ -89,16 +93,33 @@ function comissaoTipoPayload(formData: FormData) {
     nome: required(text(formData, 'nome'), 'Nome'),
     categoria: nullableText(formData, 'categoria'),
     percentual: percent(formData, 'percentual'),
+    comissao_de_time: formData.get('comissao_de_time') === 'on',
     ativo: formData.get('ativo') !== 'off',
     observacao: nullableText(formData, 'observacao'),
   }
 }
 
-function colaboradorPayload(formData: FormData) {
+async function colaboradorPayload(formData: FormData) {
+  const usuarioId = uuidOrNull(text(formData, 'usuario_id'))
+  let coreUsuario: Record<string, unknown> | null = null
+
+  if (usuarioId) {
+    const { data, error } = await admin()
+      .schema('security')
+      .from('usuarios')
+      .select('id,nome,email,status')
+      .eq('id', usuarioId)
+      .single()
+
+    if (error || !data) throw new Error(error?.message ?? 'Usuario Core nao encontrado.')
+    coreUsuario = data as Record<string, unknown>
+  }
+
   return {
-    nome: required(text(formData, 'nome'), 'Nome'),
+    usuario_id: usuarioId,
+    nome: coreUsuario ? required(String(coreUsuario.nome ?? '').trim(), 'Nome do usuario Core') : required(text(formData, 'nome'), 'Nome'),
     cpf_cnpj: nullableText(formData, 'cpf_cnpj'),
-    email: required(text(formData, 'email'), 'E-mail'),
+    email: coreUsuario ? required(String(coreUsuario.email ?? '').trim().toLowerCase(), 'E-mail do usuario Core') : required(text(formData, 'email'), 'E-mail'),
     telefone: nullableText(formData, 'telefone'),
     status: text(formData, 'status') || 'ativo',
     time_id: uuidOrNull(text(formData, 'time_id')),
@@ -113,6 +134,40 @@ function colaboradorPayload(formData: FormData) {
     beneficio_valor: money(formData, 'beneficio_valor'),
     observacoes: nullableText(formData, 'observacoes'),
   }
+}
+
+async function findExistingColaborador(payload: Awaited<ReturnType<typeof colaboradorPayload>>) {
+  const matches = new Map<string, Record<string, unknown>>()
+
+  if (payload.usuario_id) {
+    const { data, error } = await admin()
+      .schema('gkli_intr')
+      .from('colaboradores')
+      .select('id,usuario_id,email')
+      .eq('usuario_id', payload.usuario_id)
+      .maybeSingle()
+
+    if (error) throw new Error(error.message)
+    if (data) matches.set(String(data.id), data as Record<string, unknown>)
+  }
+
+  if (payload.email) {
+    const { data, error } = await admin()
+      .schema('gkli_intr')
+      .from('colaboradores')
+      .select('id,usuario_id,email')
+      .eq('email', payload.email)
+      .maybeSingle()
+
+    if (error) throw new Error(error.message)
+    if (data) matches.set(String(data.id), data as Record<string, unknown>)
+  }
+
+  if (matches.size > 1) {
+    throw new Error('O usuario Core e o e-mail informados apontam para colaboradores diferentes no Intr.')
+  }
+
+  return Array.from(matches.values())[0] ?? null
 }
 
 function comissaoPayload(formData: FormData) {
@@ -181,9 +236,10 @@ function pagamentoPayload(formData: FormData) {
 function agendaPagamentoPayload(formData: FormData) {
   return {
     colaborador_id: required(text(formData, 'colaborador_id'), 'Colaborador'),
-    tipo: required(text(formData, 'tipo'), 'Tipo'),
+    tipo: required(text(formData, 'tipo'), 'Tipo de pagamento'),
     descricao: nullableText(formData, 'descricao'),
     dia_previsto: integerInRange(formData, 'dia_previsto', 1, 31),
+    percentual: percent(formData, 'percentual'),
     valor_bruto: money(formData, 'valor_bruto'),
     valor_descontos: money(formData, 'valor_descontos'),
     inicio_competencia: required(text(formData, 'inicio_competencia'), 'Inicio da competencia'),
@@ -512,7 +568,7 @@ async function buildRevenueCommissionPreviewItems(parsed: ParsedRevenueRow[]) {
   const [colaboradoresResult, timesResult, tiposResult] = await Promise.all([
     admin().schema('gkli_intr').from('colaboradores').select('id,nome,status,time_id'),
     admin().schema('gkli_intr').from('times').select('id,nome,ativo'),
-    admin().schema('gkli_intr').from('comissao_tipos').select('id,nome,categoria,percentual,ativo'),
+    admin().schema('gkli_intr').from('comissao_tipos').select('*'),
   ])
   if (colaboradoresResult.error) throw new Error(colaboradoresResult.error.message)
   if (timesResult.error) throw new Error(timesResult.error.message)
@@ -548,7 +604,10 @@ async function buildRevenueCommissionPreviewItems(parsed: ParsedRevenueRow[]) {
     const tipoKey = normalizeName(receita.categoria ?? '')
     const tipo = typeByCategory.get(tipoKey) ?? typeByName.get(tipoKey)
     const colaborador = vendedorKey ? colaboradorByName.get(vendedorKey) : null
-    const time = vendedorKey && !colaborador ? timeByName.get(vendedorKey) : null
+    const comissaoDeTime = tipo?.comissao_de_time === true
+    const time = vendedorKey
+      ? timeByName.get(vendedorKey) ?? (comissaoDeTime && colaborador?.time_id ? times.find((item) => String(item.id) === String(colaborador.time_id)) : null)
+      : null
     const percentualTotal = Number(tipo?.percentual ?? 0)
     const tipoComissaoNome = String(tipo?.nome ?? receita.categoria ?? 'Tipo nao definido')
     let receivers: Array<Record<string, unknown>> = []
@@ -557,13 +616,16 @@ async function buildRevenueCommissionPreviewItems(parsed: ParsedRevenueRow[]) {
     if (!receita.vendedorNome) alertas.push(`Linha ${receita.linha}: vendedor vazio; comissao em conferencia.`)
     if (!tipo || percentualTotal <= 0) alertas.push(`Linha ${receita.linha}: tipo de comissao nao encontrado para "${receita.categoria ?? 'Sem categoria'}".`)
 
-    if (colaborador) {
+    if (comissaoDeTime) {
+      receivers = time ? membersByTime.get(String(time.id)) ?? [] : []
+      recebedorTipo = time ? 'time' : null
+      if (!time && receita.vendedorNome) alertas.push(`Linha ${receita.linha}: time "${receita.vendedorNome}" nao localizado para comissao de time.`)
+      if (time && !receivers.length) alertas.push(`Linha ${receita.linha}: time "${String(time.nome ?? receita.vendedorNome)}" sem membros ativos.`)
+    } else if (colaborador) {
       receivers = [colaborador]
       recebedorTipo = 'colaborador'
     } else if (time) {
-      receivers = membersByTime.get(String(time.id)) ?? []
-      recebedorTipo = 'time'
-      if (!receivers.length) alertas.push(`Linha ${receita.linha}: time "${receita.vendedorNome}" sem membros ativos.`)
+      alertas.push(`Linha ${receita.linha}: vendedor "${receita.vendedorNome}" localizado como time, mas o tipo de comissao nao esta marcado como comissao de time.`)
     } else if (receita.vendedorNome) {
       alertas.push(`Linha ${receita.linha}: vendedor "${receita.vendedorNome}" nao localizado como colaborador ou time.`)
     }
@@ -726,6 +788,30 @@ function sumRows(rows: Array<Record<string, unknown>>, field: string) {
   return rows.reduce((sum, row) => sum + Number(row[field] ?? 0), 0)
 }
 
+function normalizePaymentType(value: unknown) {
+  return normalizeName(String(value ?? ''))
+}
+
+function agendaPaymentBase({
+  agenda,
+  comissoes,
+  receitaTotal,
+}: {
+  agenda: Record<string, unknown>
+  comissoes: Array<Record<string, unknown>>
+  receitaTotal: number
+}) {
+  const tipo = normalizePaymentType(agenda.tipo)
+  const colaboradorId = String(agenda.colaborador_id ?? '')
+
+  if (tipo.includes('comissao')) {
+    const colaboradorComissoes = comissoes.filter((row) => String(row.colaborador_id ?? '') === colaboradorId)
+    return { base: sumRows(colaboradorComissoes, 'valor_comissao'), baseLabel: 'comissoes do colaborador na competencia' }
+  }
+
+  return { base: Number(agenda.valor_bruto ?? 0), baseLabel: 'valor fixo da agenda' }
+}
+
 async function computeFechamento(competencia: string) {
   const [receitasResult, comissoesResult, pagamentosResult] = await Promise.all([
     admin().schema('gkli_intr').from('receitas').select('valor_recebido,status').eq('competencia', competencia),
@@ -774,7 +860,24 @@ export async function updateIntrTimeAction(formData: FormData) {
 
 export async function createIntrColaboradorAction(formData: FormData) {
   await requireIntrWrite('intr.colaboradores.write')
-  const { data, error } = await admin().schema('gkli_intr').from('colaboradores').insert(colaboradorPayload(formData)).select('id').single()
+  const payload = await colaboradorPayload(formData)
+  const existing = await findExistingColaborador(payload)
+
+  if (existing) {
+    const existingUserId = existing.usuario_id ? String(existing.usuario_id) : null
+    if (payload.usuario_id && existingUserId && existingUserId !== payload.usuario_id) {
+      throw new Error('Este e-mail ja esta vinculado a outro usuario Core no Intr.')
+    }
+
+    const { error } = await admin().schema('gkli_intr').from('colaboradores').update(payload).eq('id', existing.id)
+    if (error) throw new Error(error.message)
+    revalidatePath('/modulos/intr')
+    revalidatePath('/modulos/intr/colaboradores')
+    revalidatePath(`/modulos/intr/colaboradores/${existing.id}`)
+    redirect(`/modulos/intr/colaboradores/${existing.id}`)
+  }
+
+  const { data, error } = await admin().schema('gkli_intr').from('colaboradores').insert(payload).select('id').single()
   if (error) throw new Error(error.message)
   revalidatePath('/modulos/intr')
   revalidatePath('/modulos/intr/colaboradores')
@@ -784,7 +887,7 @@ export async function createIntrColaboradorAction(formData: FormData) {
 export async function updateIntrColaboradorAction(formData: FormData) {
   const id = required(text(formData, 'id'), 'Colaborador')
   await requireIntrWrite('intr.colaboradores.write')
-  const { error } = await admin().schema('gkli_intr').from('colaboradores').update(colaboradorPayload(formData)).eq('id', id)
+  const { error } = await admin().schema('gkli_intr').from('colaboradores').update(await colaboradorPayload(formData)).eq('id', id)
   if (error) throw new Error(error.message)
   revalidatePath('/modulos/intr')
   revalidatePath('/modulos/intr/colaboradores')
@@ -920,7 +1023,7 @@ export async function importarIntrReceitasXlsx(formData: FormData) {
         origem_id: comissao.origemId,
         observacao: item.recebedorTipo === 'time'
           ? `Rateio do time ${item.vendedorNome}: percentual total ${comissao.percentualTotal.toFixed(4)}% dividido entre ${item.comissoes.length} membro(s).`
-          : `Comissao gerada pela importacao de receita. Recebedor: ${item.vendedorNome ?? comissao.colaboradorNome}.`,
+          : `Comissao gerada pela importação de receita. Recebedor: ${item.vendedorNome ?? comissao.colaboradorNome}.`,
       }
 
       if (comissao.comissaoId) {
@@ -945,7 +1048,7 @@ export async function importarIntrReceitasXlsx(formData: FormData) {
       observacao: preview.ignoradas.slice(0, 20).join('\n') || null,
     })
   } catch {
-    // Historico depende da migration de importacoes; a carga de receitas nao deve falhar por isso.
+    // Historico depende da migration de importações; a carga de receitas nao deve falhar por isso.
   }
 
   revalidatePath('/modulos/intr')
@@ -1166,30 +1269,62 @@ export async function updateIntrPagamentoAgendaAction(formData: FormData) {
 export async function gerarPagamentosPrevistosAction(formData: FormData) {
   await requireIntrWrite('intr.agenda_pagamentos.write')
   const competencia = required(text(formData, 'competencia'), 'Competencia')
-  const { data, error } = await admin()
-    .schema('gkli_intr')
-    .from('pagamento_agendas')
-    .select('id,colaborador_id,tipo,descricao,dia_previsto,valor_bruto,valor_descontos,origem,observacao')
-    .eq('ativo', true)
-    .lte('inicio_competencia', competencia)
-    .or(`fim_competencia.is.null,fim_competencia.gte.${competencia}`)
+  const [agendasResult, receitasResult, comissoesResult] = await Promise.all([
+    admin()
+      .schema('gkli_intr')
+      .from('pagamento_agendas')
+      .select('*')
+      .eq('ativo', true)
+      .lte('inicio_competencia', competencia)
+      .or(`fim_competencia.is.null,fim_competencia.gte.${competencia}`),
+    admin()
+      .schema('gkli_intr')
+      .from('receitas')
+      .select('valor_recebido,status')
+      .eq('competencia', competencia),
+    admin()
+      .schema('gkli_intr')
+      .from('comissoes')
+      .select('colaborador_id,valor_comissao,status')
+      .eq('competencia', competencia),
+  ])
 
-  if (error) throw new Error(error.message)
+  if (agendasResult.error) throw new Error(agendasResult.error.message)
+  if (receitasResult.error) throw new Error(receitasResult.error.message)
+  if (comissoesResult.error) throw new Error(comissoesResult.error.message)
 
-  const rows = ((data ?? []) as Array<Record<string, unknown>>).map((agenda) => ({
-    colaborador_id: String(agenda.colaborador_id),
-    agenda_id: String(agenda.id),
-    tipo: String(agenda.tipo ?? 'Pagamento recorrente'),
-    descricao: agenda.descricao ? String(agenda.descricao) : 'Pagamento previsto pela agenda do Intr.',
-    competencia,
-    data_prevista: scheduledDate(competencia, Number(agenda.dia_previsto ?? 1)),
-    valor_bruto: Number(agenda.valor_bruto ?? 0),
-    valor_descontos: Number(agenda.valor_descontos ?? 0),
-    status: 'previsto',
-    origem: agenda.origem ? String(agenda.origem) : 'agenda_pagamento',
-    origem_id: String(agenda.id),
-    observacao: agenda.observacao ? String(agenda.observacao) : null,
-  }))
+  const receitas = ((receitasResult.data ?? []) as Array<Record<string, unknown>>).filter((row) => row.status !== 'cancelada')
+  const comissoes = ((comissoesResult.data ?? []) as Array<Record<string, unknown>>).filter((row) => row.status !== 'cancelada')
+  const receitaTotal = sumRows(receitas, 'valor_recebido')
+
+  const rows = ((agendasResult.data ?? []) as Array<Record<string, unknown>>).map((agenda) => {
+    const percentualAgenda = Number(agenda.percentual ?? 0)
+    const { base, baseLabel } = agendaPaymentBase({ agenda, comissoes, receitaTotal })
+    const valorBruto = percentualAgenda > 0
+      ? calculateCommission(base, percentualAgenda)
+      : roundMoney(Number(agenda.valor_bruto ?? 0))
+    const observacoes = [
+      agenda.observacao ? String(agenda.observacao) : null,
+      percentualAgenda > 0
+        ? `Percentual da agenda: ${percentualAgenda.toLocaleString('pt-BR')}% sobre ${baseLabel} (${base.toLocaleString('pt-BR', { currency: 'BRL', style: 'currency' })}).`
+        : null,
+    ].filter(Boolean).join(' ')
+
+    return {
+      colaborador_id: String(agenda.colaborador_id),
+      agenda_id: String(agenda.id),
+      tipo: String(agenda.tipo ?? 'Pagamento recorrente'),
+      descricao: agenda.descricao ? String(agenda.descricao) : 'Pagamento previsto pela agenda do Intr.',
+      competencia,
+      data_prevista: scheduledDate(competencia, Number(agenda.dia_previsto ?? 1)),
+      valor_bruto: valorBruto,
+      valor_descontos: Number(agenda.valor_descontos ?? 0),
+      status: 'previsto',
+      origem: agenda.origem ? String(agenda.origem) : 'agenda_pagamento',
+      origem_id: String(agenda.id),
+      observacao: observacoes || null,
+    }
+  })
 
   if (rows.length) {
     const { error: insertError } = await admin()

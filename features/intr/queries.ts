@@ -62,6 +62,10 @@ function mapColaborador(row: Record<string, unknown>): IntrColaborador {
   }
 }
 
+function sortByNome<T extends { nome: string }>(items: T[]) {
+  return items.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }))
+}
+
 async function safeList(table: string, limit = 200) {
   const { data, error } = await admin().from(table).select('*').limit(limit)
   if (error) return { rows: [] as Array<Record<string, unknown>>, ok: false }
@@ -82,7 +86,7 @@ export async function getIntrData(): Promise<IntrData> {
   ])
 
   return {
-    colaboradores: colaboradores.rows.map(mapColaborador),
+    colaboradores: sortByNome(colaboradores.rows.map(mapColaborador)),
     fluxoMensal: fluxoMensal.rows,
     receitasCategoria: receitasCategoria.rows,
     rankingVendedores: rankingVendedores.rows,
@@ -155,7 +159,9 @@ export async function listIntrPagamentoAgendaRows(): Promise<IntrListRow[]> {
       subtitle: `${text(row.tipo, 'Pagamento')} - dia ${text(row.dia_previsto, '-')}`,
       status,
       value: formatBRL(row.valor_liquido ?? row.valor_bruto),
-      meta: `desde ${dateLabel(row.inicio_competencia)}`,
+      meta: numberValue(row.percentual) > 0
+        ? `${numberValue(row.percentual).toLocaleString('pt-BR')}% desde ${dateLabel(row.inicio_competencia)}`
+        : `desde ${dateLabel(row.inicio_competencia)}`,
       tone: listTone(status),
     }
   })
@@ -163,7 +169,75 @@ export async function listIntrPagamentoAgendaRows(): Promise<IntrListRow[]> {
 
 export async function listIntrComissaoRows(): Promise<IntrListRow[]> {
   const { rows } = await safeList('gkli_intr_comissoes_resumo', 300)
-  return rows.map((row, index) => {
+  const groups = new Map<string, {
+    colaboradorKey: string
+    colaboradorNome: string
+    competencia: Set<string>
+    count: number
+    status: string[]
+    tipo: string
+    total: number
+  }>()
+
+  rows.forEach((row) => {
+    const colaboradorNome = text(row.colaborador_nome ?? row.vendedor_nome ?? row.nome, 'Colaborador')
+    const colaboradorKey = text(row.colaborador_id) || colaboradorNome
+    const tipo = text(row.tipo_comissao_nome ?? row.categoria_importada ?? row.categoria, 'Tipo de comissao')
+    const key = `${colaboradorKey}::${tipo}`
+    const current = groups.get(key) ?? {
+      colaboradorKey,
+      colaboradorNome,
+      competencia: new Set<string>(),
+      count: 0,
+      status: [],
+      tipo,
+      total: 0,
+    }
+    current.count += 1
+    current.total += numberValue(row.valor_comissao ?? row.comissao_total ?? row.valor)
+    current.status.push(text(row.status, 'calculada'))
+    const competencia = text(row.competencia)
+    if (competencia) current.competencia.add(dateLabel(competencia))
+    groups.set(key, current)
+  })
+
+  return Array.from(groups.values())
+    .sort((a, b) => `${a.colaboradorNome} ${a.tipo}`.localeCompare(`${b.colaboradorNome} ${b.tipo}`, 'pt-BR', { sensitivity: 'base' }))
+    .map((group) => {
+      const status = group.status.includes('em_conferencia')
+        ? 'em_conferencia'
+        : group.status.includes('calculada')
+          ? 'calculada'
+          : group.status.includes('aprovada')
+            ? 'aprovada'
+            : group.status[0] ?? 'calculada'
+
+      return {
+        id: `${group.colaboradorKey}::${group.tipo}`,
+        title: group.colaboradorNome,
+        subtitle: group.tipo,
+        status,
+        value: formatBRL(group.total),
+        meta: `${group.count} lancamento(s)${group.competencia.size ? ` - ${Array.from(group.competencia).slice(0, 3).join(', ')}` : ''}`,
+        detailHref: `/modulos/intr/comissoes/conferir?colaborador=${encodeURIComponent(group.colaboradorKey)}&tipo=${encodeURIComponent(group.tipo)}`,
+        tone: listTone(status),
+      }
+    })
+}
+
+export async function listIntrComissaoDetalheRows({
+  colaborador,
+  tipo,
+}: {
+  colaborador?: string
+  tipo?: string
+}): Promise<IntrListRow[]> {
+  const { rows } = await safeList('gkli_intr_comissoes_resumo', 300)
+  return rows.filter((row) => {
+    const colaboradorKey = text(row.colaborador_id) || text(row.colaborador_nome ?? row.vendedor_nome ?? row.nome, 'Colaborador')
+    const tipoComissao = text(row.tipo_comissao_nome ?? row.categoria_importada ?? row.categoria, 'Tipo de comissao')
+    return (!colaborador || colaboradorKey === colaborador) && (!tipo || tipoComissao === tipo)
+  }).map((row, index) => {
     const status = text(row.status, 'calculada')
     return {
       id: text(row.id, `comissao-${index}`),
@@ -291,7 +365,7 @@ export async function listIntrImportacaoRows(): Promise<IntrListRow[]> {
     const status = text(row.status, 'processado')
     return {
       id: text(row.id, `importacao-${index}`),
-      title: text(row.nome_arquivo ?? row.arquivo, 'Importacao'),
+      title: text(row.nome_arquivo ?? row.arquivo, 'Importação'),
       subtitle: `${numberValue(row.total_receitas ?? row.total_linhas)} linhas - ${numberValue(row.total_alertas ?? row.total_erros)} alertas`,
       status,
       value: formatBRL(row.valor_recebido_total ?? row.valor_base_total ?? row.valor_total),
@@ -305,7 +379,7 @@ export async function listIntrComissaoTipoRows(): Promise<IntrListRow[]> {
   const { data, error } = await admin()
     .schema('gkli_intr')
     .from('comissao_tipos')
-    .select('id,nome,categoria,percentual,ativo,atualizado_em')
+    .select('id,nome,categoria,percentual,comissao_de_time,ativo,atualizado_em')
     .order('nome', { ascending: true })
     .limit(300)
 
@@ -318,15 +392,26 @@ export async function listIntrComissaoTipoRows(): Promise<IntrListRow[]> {
       subtitle: text(row.categoria, 'Sem categoria vinculada'),
       status: active ? 'ativo' : 'inativo',
       value: `${numberValue(row.percentual).toLocaleString('pt-BR')}%`,
-      meta: dateLabel(row.atualizado_em),
+      meta: row.comissao_de_time === true ? `Comissao de time - ${dateLabel(row.atualizado_em)}` : dateLabel(row.atualizado_em),
       tone: active ? 'success' : 'warning',
     }
   })
 }
 
 export async function getIntrFormData(): Promise<IntrFormData> {
-  const [colaboradores, times, comissoes, receitas] = await Promise.all([
-    admin().schema('gkli_intr').from('colaboradores').select('id,nome,email,status').order('nome', { ascending: true }).limit(500),
+  const supabase = admin()
+  const { data: colaboradorTipo } = await supabase
+    .schema('core')
+    .from('usuario_tipos')
+    .select('id')
+    .eq('codigo', 'colaborador')
+    .maybeSingle()
+
+  const [colaboradores, coreUsuarios, times, comissoes, receitas] = await Promise.all([
+    supabase.schema('gkli_intr').from('colaboradores').select('id,nome,email,status').order('nome', { ascending: true }).limit(500),
+    colaboradorTipo?.id
+      ? supabase.schema('security').from('usuarios').select('id,nome,email,status,tipo_id').eq('tipo_id', colaboradorTipo.id).order('nome', { ascending: true }).limit(500)
+      : supabase.schema('security').from('usuarios').select('id,nome,email,status,tipo_id').order('nome', { ascending: true }).limit(500),
     admin().schema('gkli_intr').from('times').select('id,nome,ativo').order('nome', { ascending: true }).limit(200),
     admin().schema('gkli_intr').from('comissoes').select('id,cliente,valor_comissao,status,competencia').order('criado_em', { ascending: false }).limit(500),
     admin().schema('gkli_intr').from('receitas').select('id,cliente,categoria,valor_recebido,status,competencia').order('competencia', { ascending: false }).limit(500),
@@ -336,6 +421,12 @@ export async function getIntrFormData(): Promise<IntrFormData> {
     colaboradores: ((colaboradores.data ?? []) as Array<Record<string, unknown>>).map((row) => ({
       id: text(row.id),
       label: `${text(row.nome, 'Colaborador')} - ${text(row.email, 'sem e-mail')}`,
+    })),
+    coreUsuarios: ((coreUsuarios.data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+      id: text(row.id),
+      email: text(row.email),
+      label: `${text(row.nome, 'Usuario')} - ${text(row.email, 'sem e-mail')}`,
+      nome: text(row.nome),
     })),
     times: ((times.data ?? []) as Array<Record<string, unknown>>).map((row) => ({
       id: text(row.id),
@@ -392,7 +483,7 @@ export async function getIntrColaborador(id: string): Promise<IntrColaboradorRec
   const { data, error } = await admin()
     .schema('gkli_intr')
     .from('colaboradores')
-    .select('id,nome,cpf_cnpj,email,telefone,status,time_id,cargo,gestor_id,salario,pro_labore,ajuda_custo,participacao_honorarios,outros_vencimentos,beneficio_descricao,beneficio_valor,observacoes')
+    .select('id,usuario_id,nome,cpf_cnpj,email,telefone,status,time_id,cargo,gestor_id,salario,pro_labore,ajuda_custo,participacao_honorarios,outros_vencimentos,beneficio_descricao,beneficio_valor,observacoes')
     .eq('id', id)
     .single()
 
@@ -400,6 +491,7 @@ export async function getIntrColaborador(id: string): Promise<IntrColaboradorRec
   const row = data as Record<string, unknown>
   return {
     id: text(row.id),
+    usuario_id: text(row.usuario_id) || null,
     nome: text(row.nome),
     cpf_cnpj: text(row.cpf_cnpj) || null,
     email: text(row.email),
@@ -509,7 +601,7 @@ export async function getIntrPagamentoAgenda(id: string): Promise<IntrPagamentoA
   const { data, error } = await admin()
     .schema('gkli_intr')
     .from('pagamento_agendas')
-    .select('id,colaborador_id,tipo,descricao,dia_previsto,valor_bruto,valor_descontos,inicio_competencia,fim_competencia,ativo,origem,observacao')
+    .select('*')
     .eq('id', id)
     .single()
 
@@ -521,6 +613,7 @@ export async function getIntrPagamentoAgenda(id: string): Promise<IntrPagamentoA
     tipo: text(row.tipo),
     descricao: text(row.descricao) || null,
     dia_previsto: numberValue(row.dia_previsto),
+    percentual: numberValue(row.percentual),
     valor_bruto: numberValue(row.valor_bruto),
     valor_descontos: numberValue(row.valor_descontos),
     inicio_competencia: text(row.inicio_competencia),
@@ -535,7 +628,7 @@ export async function getIntrComissaoTipo(id: string): Promise<IntrComissaoTipoR
   const { data, error } = await admin()
     .schema('gkli_intr')
     .from('comissao_tipos')
-    .select('id,nome,categoria,percentual,ativo,observacao')
+    .select('id,nome,categoria,percentual,comissao_de_time,ativo,observacao')
     .eq('id', id)
     .single()
 
@@ -546,6 +639,7 @@ export async function getIntrComissaoTipo(id: string): Promise<IntrComissaoTipoR
     nome: text(row.nome),
     categoria: text(row.categoria) || null,
     percentual: numberValue(row.percentual),
+    comissao_de_time: row.comissao_de_time === true,
     ativo: row.ativo !== false,
     observacao: text(row.observacao) || null,
   }

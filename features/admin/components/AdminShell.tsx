@@ -6,7 +6,8 @@ const navGroups = [
   {
     label: 'Base operacional',
     items: [
-      { href: '/admin/usuarios', label: 'Usuários', permission: 'admin.usuarios.read' },
+      { href: '/admin/usuarios', label: 'Usuarios', permission: 'admin.usuarios.read' },
+      { href: '/admin/tipos-usuario', label: 'Tipos de usuario', permission: 'admin.usuarios.read' },
       { href: '/admin/carteiras', label: 'Carteiras', permission: 'admin.carteiras.read' },
     ],
   },
@@ -14,12 +15,12 @@ const navGroups = [
     label: 'Acesso',
     items: [
       { href: '/admin/perfis', label: 'Perfis', permission: 'admin.perfis.read' },
-      { href: '/admin/permissoes', label: 'Permissões', permission: 'admin.permissoes.read' },
-      { href: '/admin/apps', label: 'Módulos', permission: 'admin.apps.read' },
+      { href: '/admin/permissoes', label: 'Permissoes', permission: 'admin.permissoes.read' },
+      { href: '/admin/apps', label: 'Modulos', permission: 'admin.apps.read' },
     ],
   },
   {
-    label: 'Gestão',
+    label: 'Gestao',
     items: [
       { href: '/admin/auditoria', label: 'Auditoria', permission: 'admin.auditoria.read' },
     ],
@@ -45,13 +46,17 @@ export function AdminShell({
       items: group.items.filter((item) => canAccess(permissions, item.permission)),
     }))
     .filter((group) => group.items.length > 0)
+  const isFullAccess = permissions.includes('*') || userRole === 'admin_global'
 
   return (
     <div className="admin-shell">
       <aside className="sidebar">
         <div className="sidebar-header">
           <BrandLogo className="sidebar-mark" label="GKLI Core" />
-          <div className="sidebar-title">GKLI Core</div>
+          <div>
+            <div className="sidebar-title">GKLI Core</div>
+            <div className="sidebar-subtitle">Acesso e governanca</div>
+          </div>
         </div>
         <nav>
           <Link className="sidebar-cockpit" href="/admin">Cockpit</Link>
@@ -70,7 +75,7 @@ export function AdminShell({
 
         <div className="sidebar-footer">
           <span>{userName}</span>
-          <span className="sidebar-badge">{userRole.replace('_', ' ')}</span>
+          <span className="sidebar-badge">{isFullAccess ? 'Acesso total' : 'Core'}</span>
         </div>
       </aside>
 
@@ -81,7 +86,7 @@ export function AdminShell({
             <div className="admin-user-email">{userEmail}</div>
           </div>
           <div className="admin-actions">
-            <Link className="button secondary" href="/plataforma">Módulos</Link>
+            <Link className="button secondary" href="/plataforma">Modulos</Link>
             <a className="button secondary" href="/logout">Sair</a>
           </div>
         </header>

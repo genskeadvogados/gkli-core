@@ -15,12 +15,8 @@ export default async function CicloOcorrenciasPage() {
       title="Ocorrencias"
       description="Registros operacionais que impactam score, risco e rotina dos clientes."
       usuario={context.usuario}
+      actions={canWrite ? <Link className="button" href="/modulos/ciclo/ocorrencias/nova">Nova ocorrencia</Link> : null}
     >
-      {canWrite ? (
-        <div className="form-actions">
-          <Link className="button" href="/modulos/ciclo/ocorrencias/nova">Nova ocorrencia</Link>
-        </div>
-      ) : null}
       <CicloListKpis rows={rows} secondaryLabel="Positivas" />
       <CicloGenericList
         title="Lista de ocorrencias"

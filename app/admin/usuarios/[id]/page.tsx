@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Field, PageHeader, SelectField } from '@/features/admin/components/Ui'
-import { getUsuario, getUsuarioRelations, listApps, listCarteiras, listPerfis } from '@/features/admin/queries'
+import { getUsuario, getUsuarioRelations, listApps, listCarteiras, listPerfis, listUsuarioTipos } from '@/features/admin/queries'
 import { requireAdminPermission } from '@/lib/auth/permissions'
 
 export default async function EditarUsuarioPage({
@@ -13,13 +13,15 @@ export default async function EditarUsuarioPage({
   await requireAdminPermission('admin.usuarios.write')
   const { id } = await params
   const query = await searchParams
-  const [usuario, relations, carteiras, apps, perfis] = await Promise.all([
+  const [usuario, relations, carteiras, apps, perfis, tipos] = await Promise.all([
     getUsuario(id),
     getUsuarioRelations(id),
     listCarteiras(),
     listApps(),
     listPerfis(),
+    listUsuarioTipos(),
   ])
+  const tiposDisponiveis = tipos.filter((tipo: any) => tipo.ativo !== false || tipo.id === usuario.tipo_id)
 
   return (
     <>
@@ -40,14 +42,11 @@ export default async function EditarUsuarioPage({
           <Field label="Avatar URL" name="avatar_url" defaultValue={usuario.avatar_url} />
         </div>
 
-        <SelectField label="Tipo" name="tipo" defaultValue={usuario.tipo}>
-          
-<option value="admin_global">Admin global</option>
-<option value="admin_carteira">Admin carteira</option>
-<option value="gestor">Gestor</option>
-<option value="operador">Operador</option>
-<option value="visualizador">Visualizador</option>
-
+        <SelectField label="Tipo de usuario" name="tipo_id" defaultValue={usuario.tipo_id ?? ''}>
+          <option value="">Selecionar tipo</option>
+          {tiposDisponiveis.map((tipo: any) => (
+            <option key={tipo.id} value={tipo.id}>{tipo.nome}</option>
+          ))}
         </SelectField>
 
         <SelectField label="Status" name="status" defaultValue={usuario.status}>

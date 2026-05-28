@@ -48,7 +48,7 @@ exception when duplicate_object then null;
 end $$;
 
 drop trigger if exists trg_fechamentos_updated_at on gkli_intr.fechamentos;
-create trigger trg_fechamentos_updated_at before update on gkli_intr.fechamentos for each row execute function core.set_updated_at();
+create trigger trg_fechamentos_updated_at before update on gkli_intr.fechamentos for each row execute function core.set_atualizado_em();
 
 create index if not exists fechamentos_competencia_idx on gkli_intr.fechamentos using btree (competencia desc);
 create index if not exists fechamentos_status_idx on gkli_intr.fechamentos using btree (status);

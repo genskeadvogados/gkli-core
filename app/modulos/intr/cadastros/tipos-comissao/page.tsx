@@ -10,17 +10,14 @@ export default async function IntrTiposComissaoPage() {
 
   return (
     <IntrShell
-      active="cadastros"
+      active="tiposComissao"
       title="Tipos de comissao"
-      description="Percentuais usados pela importacao de receitas para calcular e distribuir comissoes."
+      description="Percentuais usados pela importação de receitas para calcular e distribuir comissoes."
       usuario={context.usuario}
-    >
-      {canWrite ? (
-        <div className="form-actions">
-          <Link className="button secondary" href="/modulos/intr/cadastros">Cadastros</Link>
-          <Link className="button" href="/modulos/intr/cadastros/tipos-comissao/novo">Novo tipo</Link>
-        </div>
+      actions={canWrite ? (
+        <Link className="button" href="/modulos/intr/cadastros/tipos-comissao/novo">Novo tipo</Link>
       ) : null}
+    >
       <IntrListKpis rows={rows} totalLabel="Tipos" />
       <IntrGenericList
         title="Regras cadastradas"

@@ -15,12 +15,8 @@ export default async function CrmAtividadesPage() {
       title="Atividades"
       description="Tarefas, follow-ups e proximas acoes comerciais por vencimento."
       usuario={context.usuario}
+      actions={canWrite ? <Link className="button" href="/modulos/crm/atividades/nova">Nova atividade</Link> : null}
     >
-      {canWrite ? (
-        <div className="form-actions">
-          <Link className="button" href="/modulos/crm/atividades/nova">Nova atividade</Link>
-        </div>
-      ) : null}
       <CrmListKpis rows={rows} secondaryLabel="Concluidas" />
       <CrmGenericList
         title="Lista de atividades"

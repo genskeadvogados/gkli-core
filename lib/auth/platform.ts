@@ -58,10 +58,10 @@ function normalizeModule(app: any): PlatformModule {
   }
 }
 
-async function listActiveModulesFor(usuario: PlatformUsuario): Promise<PlatformModule[]> {
+async function listActiveModulesFor(usuario: PlatformUsuario, permissions: string[]): Promise<PlatformModule[]> {
   const supabase = admin()
 
-  if (usuario.tipo === 'admin_global') {
+  if (usuario.tipo === 'admin_global' || permissions.includes('*')) {
     const { data, error } = await supabase
       .schema('core')
       .from('apps')
@@ -129,10 +129,8 @@ export async function requirePlatformContext(next = '/plataforma'): Promise<{
   }
 
   const typedUsuario = usuario as PlatformUsuario
-  const [permissions, modules] = await Promise.all([
-    getUsuarioPermissionCodes(typedUsuario),
-    listActiveModulesFor(typedUsuario),
-  ])
+  const permissions = await getUsuarioPermissionCodes(typedUsuario)
+  const modules = await listActiveModulesFor(typedUsuario, permissions)
 
   return {
     authUser: user,
@@ -145,7 +143,7 @@ export async function requirePlatformContext(next = '/plataforma'): Promise<{
 export async function requireModuleAccess(codigo: string) {
   const context = await requirePlatformContext(`/modulos/${codigo}`)
 
-  if (context.usuario.tipo === 'admin_global') {
+  if (context.usuario.tipo === 'admin_global' || context.permissions.includes('*')) {
     return context
   }
 

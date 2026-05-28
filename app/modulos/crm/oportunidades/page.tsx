@@ -15,12 +15,8 @@ export default async function CrmOportunidadesPage() {
       title="Oportunidades"
       description="Acompanhe o funil por etapa, carteira, probabilidade e prioridade operacional."
       usuario={context.usuario}
+      actions={canWrite ? <Link className="button" href="/modulos/crm/oportunidades/nova">Nova oportunidade</Link> : null}
     >
-      {canWrite ? (
-        <div className="form-actions">
-          <Link className="button" href="/modulos/crm/oportunidades/nova">Nova oportunidade</Link>
-        </div>
-      ) : null}
       <CrmKpis data={data} />
       <CrmBoard canWrite={canWrite} oportunidades={data.oportunidades} />
     </CrmShell>

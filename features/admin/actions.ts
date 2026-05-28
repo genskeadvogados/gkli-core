@@ -23,6 +23,12 @@ function nullableText(formData: FormData, key: string) {
   return value.length ? value : null
 }
 
+function boolFromSelect(formData: FormData, key: string, fallback = true) {
+  const value = text(formData, key)
+  if (!value) return fallback
+  return value === 'true'
+}
+
 function ids(formData: FormData, key: string) {
   return formData.getAll(key).map(String).filter(Boolean)
 }
@@ -151,6 +157,66 @@ export async function updateAppAction(formData: FormData) {
   revalidatePath('/admin')
   revalidatePath('/admin/apps')
   redirect('/admin/apps')
+}
+
+export async function createUsuarioTipoAction(formData: FormData) {
+  const { authUser } = await requireAdminAction('admin.usuarios.write')
+
+  const nome = required(text(formData, 'nome'), 'Nome')
+  const cod = codigo(required(text(formData, 'codigo'), 'Codigo'))
+
+  const { data, error } = await admin().schema('core').from('usuario_tipos').insert({
+    nome,
+    codigo: cod,
+    descricao: nullableText(formData, 'descricao'),
+    ativo: boolFromSelect(formData, 'ativo'),
+  }).select('id').single()
+
+  if (error) throw new Error(error.message)
+
+  await logEvent(authUser.id, 'usuario_tipo.criado', `Tipo de usuario criado: ${nome}`, { id: data.id, codigo: cod }, {
+    entidade_schema: 'core',
+    entidade_tabela: 'usuario_tipos',
+    entidade_id: data.id,
+  })
+  revalidatePath('/admin')
+  revalidatePath('/admin/tipos-usuario')
+  redirect('/admin/tipos-usuario')
+}
+
+export async function updateUsuarioTipoAction(formData: FormData) {
+  const { authUser } = await requireAdminAction('admin.usuarios.write')
+
+  const id = uuid(text(formData, 'id'), 'Tipo de usuario')
+  const nome = required(text(formData, 'nome'), 'Nome')
+
+  const { data: atual } = await admin()
+    .schema('core')
+    .from('usuario_tipos')
+    .select('codigo')
+    .eq('id', id)
+    .single()
+
+  const sistema = ['colaborador', 'cliente', 'prestador', 'outros'].includes(String(atual?.codigo ?? ''))
+
+  const { error } = await admin().schema('core').from('usuario_tipos').update({
+    nome,
+    ...(sistema ? {} : { codigo: codigo(required(text(formData, 'codigo'), 'Codigo')) }),
+    descricao: nullableText(formData, 'descricao'),
+    ativo: boolFromSelect(formData, 'ativo'),
+  }).eq('id', id)
+
+  if (error) throw new Error(error.message)
+
+  await logEvent(authUser.id, 'usuario_tipo.atualizado', `Tipo de usuario atualizado: ${nome}`, { id }, {
+    entidade_schema: 'core',
+    entidade_tabela: 'usuario_tipos',
+    entidade_id: id,
+  })
+  revalidatePath('/admin')
+  revalidatePath('/admin/tipos-usuario')
+  revalidatePath(`/admin/tipos-usuario/${id}`)
+  redirect('/admin/tipos-usuario')
 }
 
 export async function createPerfilAction(formData: FormData) {
@@ -286,7 +352,8 @@ export async function createUsuarioAction(formData: FormData) {
     id,
     nome,
     email,
-    tipo: (text(formData, 'tipo') || 'operador') as TipoUsuario,
+    tipo: 'operador' as TipoUsuario,
+    tipo_id: nullableText(formData, 'tipo_id'),
     status: (text(formData, 'status') || 'pendente') as StatusUsuario,
     avatar_url: nullableText(formData, 'avatar_url'),
   })
@@ -332,7 +399,7 @@ export async function saveUsuarioForm(formData: FormData) {
   const { error } = await supabase.schema('security').from('usuarios').update({
     nome,
     email,
-    tipo: (text(formData, 'tipo') || 'operador') as TipoUsuario,
+    tipo_id: nullableText(formData, 'tipo_id'),
     status: (text(formData, 'status') || 'pendente') as StatusUsuario,
     avatar_url: nullableText(formData, 'avatar_url'),
   }).eq('id', id)

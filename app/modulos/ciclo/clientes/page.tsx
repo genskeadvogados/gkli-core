@@ -15,12 +15,8 @@ export default async function CicloClientesPage() {
       title="Clientes"
       description="Base única de clientes do Ciclo, com carteira, administradora, risco e regularidade."
       usuario={context.usuario}
+      actions={canWrite ? <Link className="button" href="/modulos/ciclo/clientes/novo">Novo cliente</Link> : null}
     >
-      {canWrite ? (
-        <div className="form-actions">
-          <Link className="button" href="/modulos/ciclo/clientes/novo">Novo cliente</Link>
-        </div>
-      ) : null}
       <CicloKpis data={data} />
       <CicloClienteList canWrite={canWrite} clientes={data.clientes} />
     </CicloShell>

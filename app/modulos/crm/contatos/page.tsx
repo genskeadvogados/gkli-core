@@ -15,12 +15,8 @@ export default async function CrmContatosPage() {
       title="Contatos"
       description="Pessoas de relacionamento comercial, com cargo, e-mail e telefone."
       usuario={context.usuario}
+      actions={canWrite ? <Link className="button" href="/modulos/crm/contatos/novo">Novo contato</Link> : null}
     >
-      {canWrite ? (
-        <div className="form-actions">
-          <Link className="button" href="/modulos/crm/contatos/novo">Novo contato</Link>
-        </div>
-      ) : null}
       <CrmListKpis rows={rows} secondaryLabel="Com cargo" />
       <CrmGenericList
         title="Lista de contatos"

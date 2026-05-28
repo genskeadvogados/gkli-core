@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { canAccess } from '@/lib/auth/permissions'
-import { gerarPagamentosComissoesAprovadasAction, updateIntrComissaoStatusAction } from '@/features/intr/actions'
+import { gerarPagamentosComissoesAprovadasAction } from '@/features/intr/actions'
 import { IntrComissaoOperationalList, IntrComissaoWorkflowActions, IntrListKpis, IntrShell } from '@/features/intr/components'
 import { listIntrComissaoRows, requireIntrContext } from '@/features/intr/queries'
 
@@ -15,12 +15,8 @@ export default async function IntrComissoesPage() {
       title="Comissoes"
       description="Comissoes calculadas por colaborador, categoria, cliente e competencia."
       usuario={context.usuario}
+      actions={canWrite ? <Link className="button" href="/modulos/intr/comissoes/nova">Nova comissao</Link> : null}
     >
-      {canWrite ? (
-        <div className="form-actions">
-          <Link className="button" href="/modulos/intr/comissoes/nova">Nova comissao</Link>
-        </div>
-      ) : null}
       {canWrite ? (
         <IntrComissaoWorkflowActions
           gerarPagamentosAction={gerarPagamentosComissoesAprovadasAction}
@@ -28,9 +24,7 @@ export default async function IntrComissoesPage() {
       ) : null}
       <IntrListKpis rows={rows} totalLabel="Comissoes" />
       <IntrComissaoOperationalList
-        canWrite={canWrite}
         rows={rows}
-        statusAction={updateIntrComissaoStatusAction}
       />
     </IntrShell>
   )

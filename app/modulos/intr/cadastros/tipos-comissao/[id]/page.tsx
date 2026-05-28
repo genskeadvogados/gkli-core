@@ -8,9 +8,9 @@ export default async function EditarIntrTipoComissaoPage({ params }: { params: P
 
   return (
     <IntrShell
-      active="cadastros"
+      active="tiposComissao"
       title={tipo.nome}
-      description="Edite percentual e categoria usada no calculo automatico da importacao de receitas."
+      description="Edite percentual e categoria usada no calculo automatico da importação de receitas."
       usuario={context.usuario}
     >
       <IntrComissaoTipoForm action={updateIntrComissaoTipoAction} tipo={tipo} />

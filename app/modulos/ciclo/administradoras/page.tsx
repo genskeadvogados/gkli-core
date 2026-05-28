@@ -15,12 +15,8 @@ export default async function CicloAdministradorasPage() {
       title="Administradoras"
       description="Cadastro de administradoras vinculadas aos clientes do Ciclo."
       usuario={context.usuario}
+      actions={canWrite ? <Link className="button" href="/modulos/ciclo/administradoras/nova">Nova administradora</Link> : null}
     >
-      {canWrite ? (
-        <div className="form-actions">
-          <Link className="button" href="/modulos/ciclo/administradoras/nova">Nova administradora</Link>
-        </div>
-      ) : null}
       <CicloListKpis rows={rows} />
       <CicloGenericList
         title="Lista de administradoras"

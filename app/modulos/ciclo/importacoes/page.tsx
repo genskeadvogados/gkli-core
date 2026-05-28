@@ -13,7 +13,7 @@ export default async function CicloImportacoesPage() {
     <CicloShell
       active="importacoes"
       eyebrow="Dados"
-      title="Importacoes"
+      title="Importações"
       description="Historico de cargas e processamento de dados do Ciclo."
       usuario={context.usuario}
     >
@@ -31,10 +31,10 @@ export default async function CicloImportacoesPage() {
       ) : null}
       <CicloListKpis rows={rows} secondaryLabel="Processadas" />
       <CicloGenericList
-        title="Historico de importacoes"
+        title="Historico de importações"
         description="Lotes e arquivos importados para o cadastro mestre."
         detailHrefBase="/modulos/ciclo/importacoes"
-        emptyLabel="Nenhuma importacao encontrada."
+        emptyLabel="Nenhuma importação encontrada."
         rows={rows}
       />
     </CicloShell>

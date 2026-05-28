@@ -44,7 +44,7 @@ exception when duplicate_object then null;
 end $$;
 
 drop trigger if exists trg_receitas_updated_at on gkli_intr.receitas;
-create trigger trg_receitas_updated_at before update on gkli_intr.receitas for each row execute function core.set_updated_at();
+create trigger trg_receitas_updated_at before update on gkli_intr.receitas for each row execute function core.set_atualizado_em();
 
 create index if not exists receitas_colaborador_id_idx on gkli_intr.receitas using btree (colaborador_id);
 create index if not exists receitas_competencia_idx on gkli_intr.receitas using btree (competencia desc);

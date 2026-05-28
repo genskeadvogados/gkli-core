@@ -14,12 +14,8 @@ export default async function IntrColaboradoresPage() {
       title="Colaboradores"
       description="Cadastro executivo de pessoas, times, gestores, status e custo mensal."
       usuario={context.usuario}
+      actions={canWrite ? <Link className="button" href="/modulos/intr/colaboradores/novo">Novo colaborador</Link> : null}
     >
-      {canWrite ? (
-        <div className="form-actions">
-          <Link className="button" href="/modulos/intr/colaboradores/novo">Novo colaborador</Link>
-        </div>
-      ) : null}
       <IntrKpis data={data} />
       <IntrColaboradorList canWrite={canWrite} colaboradores={data.colaboradores} />
     </IntrShell>

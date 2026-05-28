@@ -16,7 +16,7 @@ export default async function CicloImportacaoDetalhePage({ params }: { params: P
     <CicloShell
       active="importacoes"
       eyebrow="Dados"
-      title={lote.arquivo_nome ?? 'Importacao XLSX'}
+      title={lote.arquivo_nome ?? 'Importação XLSX'}
       description={`Carga ${lote.status} em ${lote.finalizado_em ? new Date(lote.finalizado_em).toLocaleString('pt-BR') : 'processamento'}.`}
       usuario={context.usuario}
     >

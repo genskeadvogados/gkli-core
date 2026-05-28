@@ -14,12 +14,8 @@ export default async function IntrTimesPage() {
       title="Times"
       description="Agrupamento operacional de colaboradores por equipe, gestor e custo mensal."
       usuario={context.usuario}
+      actions={canWrite ? <Link className="button" href="/modulos/intr/times/novo">Novo time</Link> : null}
     >
-      {canWrite ? (
-        <div className="form-actions">
-          <Link className="button" href="/modulos/intr/times/novo">Novo time</Link>
-        </div>
-      ) : null}
       <IntrListKpis rows={rows} totalLabel="Times" />
       <IntrGenericList
         title="Times publicados"

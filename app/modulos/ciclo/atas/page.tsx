@@ -15,12 +15,8 @@ export default async function CicloAtasPage() {
       title="Atas"
       description="Atas, assembleias, validade e observacoes operacionais."
       usuario={context.usuario}
+      actions={canWrite ? <Link className="button" href="/modulos/ciclo/atas/nova">Nova ata</Link> : null}
     >
-      {canWrite ? (
-        <div className="form-actions">
-          <Link className="button" href="/modulos/ciclo/atas/nova">Nova ata</Link>
-        </div>
-      ) : null}
       <CicloListKpis rows={rows} secondaryLabel="Vigentes" />
       <CicloGenericList
         title="Lista de atas"

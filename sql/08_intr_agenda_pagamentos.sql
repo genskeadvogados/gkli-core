@@ -10,6 +10,7 @@ create table if not exists gkli_intr.pagamento_agendas (
   tipo text not null,
   descricao text,
   dia_previsto integer not null,
+  percentual numeric(8,4) default 0 not null,
   valor_bruto numeric(14,2) default 0 not null,
   valor_descontos numeric(14,2) default 0 not null,
   valor_liquido numeric(14,2) generated always as (greatest(valor_bruto - valor_descontos, 0)) stored,
@@ -22,9 +23,19 @@ create table if not exists gkli_intr.pagamento_agendas (
   atualizado_em timestamp with time zone default now() not null,
   constraint pagamento_agendas_pkey primary key (id),
   constraint pagamento_agendas_dia_check check (dia_previsto between 1 and 31),
+  constraint pagamento_agendas_percentual_check check (percentual >= 0 and percentual <= 100),
   constraint pagamento_agendas_valores_check check (valor_bruto >= 0 and valor_descontos >= 0),
   constraint pagamento_agendas_vigencia_check check (fim_competencia is null or fim_competencia >= inicio_competencia)
 );
+
+alter table gkli_intr.pagamento_agendas
+  add column if not exists percentual numeric(8,4) default 0 not null;
+
+do $$ begin
+  alter table gkli_intr.pagamento_agendas
+    add constraint pagamento_agendas_percentual_check check (percentual >= 0 and percentual <= 100);
+exception when duplicate_object then null;
+end $$;
 
 do $$ begin
   alter table gkli_intr.pagamento_agendas
@@ -46,7 +57,7 @@ create unique index if not exists pagamentos_agenda_competencia_uidx
   where agenda_id is not null;
 
 drop trigger if exists trg_pagamento_agendas_updated_at on gkli_intr.pagamento_agendas;
-create trigger trg_pagamento_agendas_updated_at before update on gkli_intr.pagamento_agendas for each row execute function core.set_updated_at();
+create trigger trg_pagamento_agendas_updated_at before update on gkli_intr.pagamento_agendas for each row execute function core.set_atualizado_em();
 
 create index if not exists pagamento_agendas_colaborador_id_idx on gkli_intr.pagamento_agendas using btree (colaborador_id);
 create index if not exists pagamento_agendas_ativo_idx on gkli_intr.pagamento_agendas using btree (ativo);
@@ -66,6 +77,7 @@ select
   a.tipo,
   a.descricao,
   a.dia_previsto,
+  a.percentual,
   a.valor_bruto,
   a.valor_descontos,
   a.valor_liquido,

@@ -15,12 +15,8 @@ export default async function CrmEmpresasPage() {
       title="Empresas"
       description="Cadastro de contas do CRM com visão de pipeline, contatos e carteira."
       usuario={context.usuario}
+      actions={canWrite ? <Link className="button" href="/modulos/crm/empresas/nova">Nova empresa</Link> : null}
     >
-      {canWrite ? (
-        <div className="form-actions">
-          <Link className="button" href="/modulos/crm/empresas/nova">Nova empresa</Link>
-        </div>
-      ) : null}
       <CrmEmpresaKpis empresas={data.empresas} />
       <CrmEmpresaEditableList canWrite={canWrite} empresas={data.empresas} />
     </CrmShell>

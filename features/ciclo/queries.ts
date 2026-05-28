@@ -367,7 +367,7 @@ export async function listCicloImportacaoRows(context: CicloContext): Promise<Ci
     const status = text(row.status, 'processada')
     return {
       id: text(row.id),
-      title: text(row.arquivo_nome ?? row.nome_arquivo, 'Importacao XLSX'),
+      title: text(row.arquivo_nome ?? row.nome_arquivo, 'Importação XLSX'),
       subtitle: text(row.descricao ?? row.observacao, 'Carga de dados do Ciclo'),
       status,
       value: `${numberValue(row.total_linhas ?? row.linhas_processadas).toLocaleString('pt-BR')} linhas`,

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import { ColaboradorCoreFields } from '@/features/intr/colaborador-core-fields'
 import { ModuleShell, type ModuleNavGroup } from '@/features/shared/module-shell'
 import type {
   IntrColaborador,
@@ -19,7 +20,6 @@ import type { PlatformUsuario } from '@/lib/auth/platform'
 
 type IntrTab =
   | 'cockpit'
-  | 'painel'
   | 'colaboradores'
   | 'times'
   | 'reembolsos'
@@ -27,6 +27,7 @@ type IntrTab =
   | 'comunicados'
   | 'pagamentos'
   | 'comissoes'
+  | 'tiposComissao'
   | 'receitas'
   | 'fechamentos'
   | 'cadastros'
@@ -35,7 +36,6 @@ type IntrTab =
 
 const activeHref: Record<IntrTab, string> = {
   cockpit: '/modulos/intr',
-  painel: '/modulos/intr/painel',
   colaboradores: '/modulos/intr/colaboradores',
   times: '/modulos/intr/times',
   reembolsos: '/modulos/intr/reembolsos',
@@ -43,6 +43,7 @@ const activeHref: Record<IntrTab, string> = {
   comunicados: '/modulos/intr/comunicados',
   pagamentos: '/modulos/intr/pagamentos',
   comissoes: '/modulos/intr/comissoes',
+  tiposComissao: '/modulos/intr/cadastros/tipos-comissao',
   receitas: '/modulos/intr/receitas',
   fechamentos: '/modulos/intr/fechamentos',
   cadastros: '/modulos/intr/cadastros',
@@ -53,34 +54,24 @@ const activeHref: Record<IntrTab, string> = {
 const navGroups: ModuleNavGroup[] = [
   {
     title: 'Cockpit',
-    items: [
-      { href: '/modulos/intr', label: 'Cockpit' },
-      { href: '/modulos/intr/painel', label: 'Painel' },
-    ],
+    href: '/modulos/intr',
   },
   {
-    title: 'Pessoas',
+    title: 'Base cadastral',
     items: [
       { href: '/modulos/intr/colaboradores', label: 'Colaboradores' },
       { href: '/modulos/intr/times', label: 'Times' },
+      { href: '/modulos/intr/cadastros/tipos-comissao', label: 'Tipos de comissao' },
+      { href: '/modulos/intr/importacoes', label: 'Importações' },
     ],
   },
   {
-    title: 'Financeiro',
+    title: 'Base operacional',
     items: [
       { href: '/modulos/intr/pagamentos', label: 'Pagamentos' },
       { href: '/modulos/intr/comissoes', label: 'Comissoes' },
       { href: '/modulos/intr/receitas', label: 'Receitas' },
       { href: '/modulos/intr/fechamentos', label: 'Fechamentos' },
-    ],
-  },
-  {
-    title: 'Gestao',
-    items: [
-      { href: '/modulos/intr/cadastros', label: 'Cadastros' },
-      { href: '/modulos/intr/importacoes', label: 'Importacoes' },
-      { href: '/modulos/intr/comunicados', label: 'Comunicados' },
-      { href: '/modulos/intr/integridade', label: 'Integridade' },
     ],
   },
 ]
@@ -91,12 +82,14 @@ function currency(value: number) {
 
 export function IntrShell({
   active,
+  actions,
   children,
   description,
   title,
   usuario,
 }: {
   active: IntrTab
+  actions?: ReactNode
   children: ReactNode
   description: string
   title: string
@@ -105,6 +98,7 @@ export function IntrShell({
   return (
     <ModuleShell
       activeHref={activeHref[active]}
+      actions={actions}
       brand="IN"
       description={description}
       eyebrow="GKLI Intr"
@@ -315,6 +309,17 @@ function moneyInput(value?: number | null) {
   return value ? String(value) : '0'
 }
 
+const pagamentoTipos = [
+  'Salarios',
+  'Pro-labore',
+  'Participacao em honorarios fixos',
+  'Beneficios',
+  'Comissoes',
+  'Ajuda de custo',
+  'Reembolso',
+  'Outros',
+]
+
 export function IntrTimeForm({
   action,
   time,
@@ -357,14 +362,12 @@ export function IntrColaboradorForm({
   return (
     <form action={action} className="card suite-panel module-form-grid">
       {colaborador ? <input type="hidden" name="id" value={colaborador.id} /> : null}
-      <div>
-        <label className="label" htmlFor="nome">Nome</label>
-        <input className="input" id="nome" name="nome" required defaultValue={colaborador?.nome ?? ''} />
-      </div>
-      <div>
-        <label className="label" htmlFor="email">E-mail</label>
-        <input className="input" id="email" name="email" type="email" required defaultValue={colaborador?.email ?? ''} />
-      </div>
+      <ColaboradorCoreFields
+        coreUsuarios={formData.coreUsuarios}
+        email={colaborador?.email}
+        nome={colaborador?.nome}
+        usuarioId={colaborador?.usuario_id}
+      />
       <div>
         <label className="label" htmlFor="cpf_cnpj">CPF/CNPJ</label>
         <input className="input" id="cpf_cnpj" name="cpf_cnpj" defaultValue={colaborador?.cpf_cnpj ?? ''} />
@@ -403,7 +406,7 @@ export function IntrColaboradorForm({
         ['salario', 'Salario'],
         ['pro_labore', 'Pro-labore'],
         ['ajuda_custo', 'Ajuda de custo'],
-        ['participacao_honorarios', 'Participacao honorarios'],
+        ['participacao_honorarios', 'Participacao em honorarios fixos'],
         ['outros_vencimentos', 'Outros vencimentos'],
         ['beneficio_valor', 'Valor beneficio'],
       ].map(([name, label]) => (
@@ -536,6 +539,10 @@ export function IntrComissaoTipoForm({
         <label className="label" htmlFor="percentual">Percentual</label>
         <input className="input" id="percentual" name="percentual" type="number" min={0} max={100} step="0.0001" required defaultValue={tipo?.percentual ?? 0} />
       </div>
+      <label className="checkbox-row">
+        <input name="comissao_de_time" type="checkbox" value="on" defaultChecked={tipo?.comissao_de_time ?? false} />
+        <span>Comissao de time</span>
+      </label>
       <label className="checkbox-row">
         <input name="ativo" type="checkbox" value="on" defaultChecked={tipo?.ativo ?? true} />
         <span>Tipo ativo</span>
@@ -719,6 +726,43 @@ export function IntrComissaoWorkflowActions({
 }
 
 export function IntrComissaoOperationalList({
+  rows,
+}: {
+  rows: IntrListRow[]
+}) {
+  return (
+    <section className="card suite-panel">
+      <div className="suite-panel-heading">
+        <div>
+          <h2>Comissoes por colaborador e tipo</h2>
+          <p>Consolide os lancamentos e abra a conferencia para ver a relacao detalhada.</p>
+        </div>
+      </div>
+      {rows.length ? (
+        <div className="suite-table-list">
+          {rows.map((row) => (
+            <article key={row.id}>
+              <div>
+                <h3>{row.title}</h3>
+                <p>{row.subtitle}</p>
+              </div>
+              <span className={`suite-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
+              <strong>{row.value}</strong>
+              <small>
+                {row.meta}
+                {row.detailHref ? <Link className="button secondary" href={row.detailHref}>Conferir</Link> : null}
+              </small>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <EmptyBlock label="Nenhuma comissao encontrada nas views do Intr." />
+      )}
+    </section>
+  )
+}
+
+export function IntrComissaoDetailList({
   canWrite,
   rows,
   statusAction,
@@ -728,7 +772,7 @@ export function IntrComissaoOperationalList({
   statusAction: (formData: FormData) => Promise<void>
 }) {
   const transitions = [
-    { label: 'Conferir', status: 'em_conferencia' },
+    { label: 'Marcar conferencia', status: 'em_conferencia' },
     { label: 'Aprovar', status: 'aprovada' },
     { label: 'Rejeitar', status: 'rejeitada' },
     { label: 'Pagar', status: 'paga' },
@@ -739,8 +783,8 @@ export function IntrComissaoOperationalList({
     <section className="card suite-panel">
       <div className="suite-panel-heading">
         <div>
-          <h2>Lancamentos de comissao</h2>
-          <p>Atualize o fluxo da comissao diretamente pela linha, sem copiar IDs.</p>
+          <h2>Relacao detalhada</h2>
+          <p>Lancamentos individuais do grupo selecionado para conferencia e aprovacao.</p>
         </div>
       </div>
       {rows.length ? (
@@ -772,7 +816,7 @@ export function IntrComissaoOperationalList({
           ))}
         </div>
       ) : (
-        <EmptyBlock label="Nenhuma comissao encontrada nas views do Intr." />
+        <EmptyBlock label="Nenhum lancamento encontrado para esta conferencia." />
       )}
     </section>
   )
@@ -879,12 +923,18 @@ export function IntrPagamentoAgendaForm({
         </select>
       </div>
       <div>
-        <label className="label" htmlFor="tipo">Tipo</label>
-        <input className="input" id="tipo" name="tipo" required defaultValue={agenda?.tipo ?? 'Salario'} />
+        <label className="label" htmlFor="tipo">Tipo de pagamento</label>
+        <select className="select" id="tipo" name="tipo" required defaultValue={agenda?.tipo ?? 'Salarios'}>
+          {pagamentoTipos.map((tipo) => <option key={tipo} value={tipo}>{tipo}</option>)}
+        </select>
       </div>
       <div>
         <label className="label" htmlFor="dia_previsto">Dia previsto</label>
         <input className="input" id="dia_previsto" name="dia_previsto" type="number" min={1} max={31} required defaultValue={agenda?.dia_previsto ?? 5} />
+      </div>
+      <div>
+        <label className="label" htmlFor="percentual">Percentual</label>
+        <input className="input" id="percentual" name="percentual" type="number" min={0} max={100} step="0.0001" defaultValue={agenda?.percentual ?? 0} />
       </div>
       <div>
         <label className="label" htmlFor="inicio_competencia">Inicio</label>

@@ -37,6 +37,16 @@ export async function getUsuarioPermissionCodes(usuario: UsuarioAdmin) {
   const perfilIds = (perfilRows ?? []).map((row: any) => row.perfil_id)
   if (!perfilIds.length) return []
 
+  const { data: perfis, error: perfilError } = await supabase
+    .schema('security')
+    .from('perfis')
+    .select('id,codigo')
+    .in('id', perfilIds)
+    .eq('status', 'ativo')
+
+  if (perfilError) throw new Error(perfilError.message)
+  if ((perfis ?? []).some((perfil: any) => perfil.codigo === 'admin_global')) return ['*']
+
   const { data: relRows, error: relError } = await supabase
     .schema('security')
     .from('perfil_permissoes')

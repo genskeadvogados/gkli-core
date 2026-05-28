@@ -26,17 +26,21 @@ export type IntrListRow = {
   status: string
   value: string
   meta: string
+  detailHref?: string
   tone?: 'primary' | 'success' | 'warning' | 'danger'
 }
 
 export type IntrFormOption = {
   id: string
   label: string
+  email?: string
+  nome?: string
 }
 
 export type IntrFormData = {
   colaboradores: IntrFormOption[]
   comissoes: IntrFormOption[]
+  coreUsuarios: IntrFormOption[]
   receitas: IntrFormOption[]
   times: IntrFormOption[]
 }
@@ -50,6 +54,7 @@ export type IntrTimeRecord = {
 
 export type IntrColaboradorRecord = {
   id: string
+  usuario_id: string | null
   nome: string
   cpf_cnpj: string | null
   email: string
@@ -140,6 +145,7 @@ export type IntrPagamentoAgendaRecord = {
   tipo: string
   descricao: string | null
   dia_previsto: number
+  percentual: number
   valor_bruto: number
   valor_descontos: number
   inicio_competencia: string
@@ -154,6 +160,7 @@ export type IntrComissaoTipoRecord = {
   nome: string
   categoria: string | null
   percentual: number
+  comissao_de_time: boolean
   ativo: boolean
   observacao: string | null
 }

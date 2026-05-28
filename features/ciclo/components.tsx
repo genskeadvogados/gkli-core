@@ -100,7 +100,7 @@ const navGroups: ModuleNavGroup[] = [
     items: [
       { href: '/modulos/ciclo/clientes', label: 'Clientes' },
       { href: '/modulos/ciclo/administradoras', label: 'Administradoras' },
-      { href: '/modulos/ciclo/importacoes', label: 'Importacoes' },
+      { href: '/modulos/ciclo/importacoes', label: 'Importações' },
     ],
   },
   {
@@ -125,6 +125,7 @@ const navGroups: ModuleNavGroup[] = [
 
 export function CicloShell({
   active,
+  actions,
   children,
   description,
   eyebrow,
@@ -132,6 +133,7 @@ export function CicloShell({
   usuario,
 }: {
   active: CicloTab
+  actions?: ReactNode
   children: ReactNode
   description: string
   eyebrow: string
@@ -141,6 +143,7 @@ export function CicloShell({
   return (
     <ModuleShell
       activeHref={activeHref[active]}
+      actions={actions}
       brand="CI"
       description={description}
       eyebrow={eyebrow}
@@ -1424,7 +1427,7 @@ export function CicloImportacaoDetalhe({
         <div className="ciclo-panel-heading">
           <div>
             <h2>Itens do lote</h2>
-            <p>Resultado linha a linha da importacao.</p>
+            <p>Resultado linha a linha da importação.</p>
           </div>
           <Link className="button secondary" href="/modulos/ciclo/importacoes">Voltar</Link>
         </div>

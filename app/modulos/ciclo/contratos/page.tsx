@@ -15,12 +15,8 @@ export default async function CicloContratosPage() {
       title="Contratos"
       description="Contratos, vigencias, valores e reajustes vinculados aos clientes."
       usuario={context.usuario}
+      actions={canWrite ? <Link className="button" href="/modulos/ciclo/contratos/novo">Novo contrato</Link> : null}
     >
-      {canWrite ? (
-        <div className="form-actions">
-          <Link className="button" href="/modulos/ciclo/contratos/novo">Novo contrato</Link>
-        </div>
-      ) : null}
       <CicloListKpis rows={rows} />
       <CicloGenericList
         title="Lista de contratos"

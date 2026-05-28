@@ -7,9 +7,9 @@ export default async function NovoIntrTipoComissaoPage() {
 
   return (
     <IntrShell
-      active="cadastros"
+      active="tiposComissao"
       title="Novo tipo de comissao"
-      description="Cadastre percentual e categoria usada no calculo automatico da importacao de receitas."
+      description="Cadastre percentual e categoria usada no calculo automatico da importação de receitas."
       usuario={context.usuario}
     >
       <IntrComissaoTipoForm action={createIntrComissaoTipoAction} />

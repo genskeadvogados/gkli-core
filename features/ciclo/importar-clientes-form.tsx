@@ -79,7 +79,7 @@ export function ImportarClientesForm() {
           {pending ? 'Validando...' : 'Pre-visualizar'}
         </button>
         <button className="button" disabled={pending || !preview || preview.validas === 0} onClick={onConfirm} type="button">
-          {pending ? 'Importando...' : 'Confirmar importacao'}
+          {pending ? 'Importando...' : 'Confirmar importação'}
         </button>
       </div>
 
@@ -90,7 +90,7 @@ export function ImportarClientesForm() {
           <div className="ciclo-panel-heading">
             <div>
               <h2>Preview da carga</h2>
-              <p>Confira os totais antes de gravar a importacao.</p>
+              <p>Confira os totais antes de gravar a importação.</p>
             </div>
           </div>
 

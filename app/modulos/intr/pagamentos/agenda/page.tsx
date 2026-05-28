@@ -15,13 +15,13 @@ export default async function IntrPagamentoAgendaPage() {
       title="Agenda de pagamentos"
       description="Regras recorrentes que geram pagamentos previstos por competencia."
       usuario={context.usuario}
-    >
-      {canWrite ? (
-        <div className="form-actions">
+      actions={canWrite ? (
+        <>
           <Link className="button secondary" href="/modulos/intr/pagamentos">Pagamentos</Link>
           <Link className="button" href="/modulos/intr/pagamentos/agenda/nova">Nova agenda</Link>
-        </div>
+        </>
       ) : null}
+    >
       {canWrite ? <IntrGerarPagamentosForm action={gerarPagamentosPrevistosAction} /> : null}
       <IntrListKpis rows={rows} totalLabel="Agendas" />
       <IntrGenericList

@@ -14,13 +14,13 @@ export default async function IntrReceitasPage() {
       title="Receitas"
       description="Receitas importadas, categorias financeiras, vendedor e valor recebido."
       usuario={context.usuario}
-    >
-      {canWrite ? (
-        <div className="form-actions">
+      actions={canWrite ? (
+        <>
           <Link className="button secondary" href="/modulos/intr/importacoes">Importar XLSX</Link>
           <Link className="button" href="/modulos/intr/receitas/nova">Nova receita</Link>
-        </div>
+        </>
       ) : null}
+    >
       <IntrListKpis rows={rows} totalLabel="Receitas" />
       <IntrGenericList
         title="Receitas e categorias"

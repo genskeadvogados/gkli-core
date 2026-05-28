@@ -15,7 +15,7 @@ export default async function UsuariosPage({ searchParams }: UsuariosPageProps) 
   const status = params?.status ?? ''
   const usuarios = await listUsuarios()
   const filtrados = usuarios.filter((u: any) => {
-    const matchesQuery = !query || [u.nome, u.email, u.tipo].some((value) => String(value ?? '').toLowerCase().includes(query))
+    const matchesQuery = !query || [u.nome, u.email, u.tipo_nome, u.tipo_codigo, u.tipo].some((value) => String(value ?? '').toLowerCase().includes(query))
     const matchesStatus = !status || u.status === status
     return matchesQuery && matchesStatus
   })
@@ -57,7 +57,7 @@ export default async function UsuariosPage({ searchParams }: UsuariosPageProps) 
               <tr key={u.id}>
                 <td>{u.nome}</td>
                 <td>{u.email}</td>
-                <td>{u.tipo}</td>
+                <td>{u.tipo_nome ?? u.tipo}</td>
                 <td><StatusBadge value={u.status} /></td>
                 <td>{Array.isArray(u.carteiras) ? u.carteiras.length : 0}</td>
                 <td>{Array.isArray(u.apps) ? u.apps.length : 0}</td>

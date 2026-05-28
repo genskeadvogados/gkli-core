@@ -15,12 +15,8 @@ export default async function CrmInteracoesPage() {
       title="Interacoes"
       description="Historico de contatos, reunioes, mensagens e relacionamento comercial."
       usuario={context.usuario}
+      actions={canWrite ? <Link className="button" href="/modulos/crm/interacoes/nova">Nova interacao</Link> : null}
     >
-      {canWrite ? (
-        <div className="form-actions">
-          <Link className="button" href="/modulos/crm/interacoes/nova">Nova interacao</Link>
-        </div>
-      ) : null}
       <CrmListKpis rows={rows} secondaryLabel="Registradas" />
       <CrmGenericList
         title="Historico de interacoes"

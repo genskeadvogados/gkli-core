@@ -11,8 +11,8 @@ export default async function IntrImportacoesPage() {
   return (
     <IntrShell
       active="importacoes"
-      title="Importacoes"
-      description="Historico de importacoes financeiras, linhas processadas, alertas e valores."
+      title="Importações"
+      description="Historico de importações financeiras, linhas processadas, alertas e valores."
       usuario={context.usuario}
     >
       {canImportReceitas ? (
@@ -26,11 +26,11 @@ export default async function IntrImportacoesPage() {
           <ImportarReceitasForm />
         </section>
       ) : null}
-      <IntrListKpis rows={rows} totalLabel="Importacoes" />
+      <IntrListKpis rows={rows} totalLabel="Importações" />
       <IntrGenericList
         title="Historico recente"
-        description="Importacoes processadas pela rotina de receitas do Intr."
-        empty="Nenhuma importacao encontrada nas views do Intr."
+        description="Importações processadas pela rotina de receitas do Intr."
+        empty="Nenhuma importação encontrada nas views do Intr."
         rows={rows}
       />
     </IntrShell>
